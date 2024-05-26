@@ -1,0 +1,121 @@
+<style>
+.history table td .time{font-size:.8em}
+.history table td .top{display:flex}
+.history table td .top span{flex:5em 0 0;overflow:hidden}
+</style>
+<div class="history">
+	<form v-on:submit="search">
+		<input>
+		<button type="submit">검색</button>
+	</form>
+	<table class="tbl1"><colgroup>
+		<col class="time">
+		<col class="tier">
+		<col class="id">
+		<col class="name">
+		<col class="job">
+		<col class="top">
+		<col class="ept">
+	</colgroup><thead>
+		<tr>
+			<th class="time"></th>
+			<th class="tier"></th>
+			<th class="id">아이디</th>
+			<th class="name">현황</th>
+			<th class="job">작업</th>
+			<th class="top">그룹</th>
+			<th class="ept"></th>
+		</tr>
+	</thead><tbody>
+		<tr v-for="a in blankList()">
+			<td><span class="time">{{a.time}}</span></td>
+			<td><i :class="'tier-'+a.tier"></i></td>
+			<td>{{a.id}}</td>
+			<td><i :class="a.name"></i></td>
+			<td>
+				<span class="job-move" v-if="a.job=='MOVE'">
+					<i :class="'tier-'+a.to[0]"></i> {{a.to[1]}}으로 {{Math.abs(a.count)}}개 {{a.count>0?'이동':'회수'}}
+				</span>
+				<span class="job-spend" v-if="a.job=='SPEND'">
+					{{a.count}}개 사용
+				</span>
+			</td>
+			<td>
+				<div class="top">
+					<span v-for="b in a.top"><i :class="`tier-${b.tier}`"></i><br>{{b.id}}</span>
+				</div>
+			</td>
+			<td></td>
+		</tr>
+	</tbody></table>
+	<form v-on:submit="pagenav">
+		<input type="number" min="1" :max="total" v-model="page">
+		<button></button>
+	</form>
+</div>
+<script type="module">
+import {local,signal,ref} from '/env.mjs'
+
+const app=local.app
+const total=ref(1)
+const page=ref(1)
+const list=ref([])
+const listsize=ref(20)
+
+signal.get("history")({
+	setup(){
+		return {total,page,list,listsize}
+	},
+	methods:{
+		async reload(){
+			var lst=[],{page:b,rows}=await app.xpost("/tickets/history",{page:1,size:20})
+
+			for(var [line,to,time,job,name,count] of rows){
+				var data={id:null,tier:null,time,job,name,to:null,ticket:null,count,top:[]}
+				var proc=(id,tier)=>{
+					data.id=id
+					data.tier=tier
+					proc=(id,tier)=>{
+						data.top.push({id,tier})
+					}
+				}
+
+				for(var tmp of line.split("\n")){
+					proc(...tmp.split("\t"))
+				}
+
+				switch(job){
+				case "SPEND":
+					data.ticket=to
+					break
+				default:
+					data.to=to.split("\t")
+				}
+
+				lst.push(data)
+			}
+
+			page.value=b
+			list.value=lst
+		},
+		async search(e){
+			e.preventDefault()
+
+			this.reload()
+		},
+		*blankList(){
+			var size=listsize.value
+			for(var row of list.value){
+				yield row
+				size--
+			}
+			for(;size>0;size--){
+				yield {}
+			}
+		}
+	},
+	mounted(){
+		this.reload()
+	}
+})
+</script>

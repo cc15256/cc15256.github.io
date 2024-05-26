@@ -1,0 +1,176 @@
+<style>
+.accounts table th button{height:1.5rem}
+.accounts table th button i{height:100%;vertical-align:top}
+.accounts table td .top{display:flex}
+.accounts table td .top span{flex:5em 0 0;overflow:hidden}
+.accounts table .state{display:flex}
+.accounts table .state i{padding:0 .3em}
+.accounts table .state div{padding:0 .3em 0 0;flex:4em 1 1;min-width:4em;text-align:right}
+.accounts table .state em{padding:0 .4em;font-style:normal}
+.accounts table .state em:not(.order0){border-radius:.3em;color:#fff;background:#7cf}
+.accounts .svg-reset{content:url('https://api.iconify.design/fluent/key-reset-20-regular.svg?color=%23555')}
+</style>
+<div class="accounts">
+	<form v-on:submit="search">
+		<input>
+		<button type="submit">검색</button>
+	</form>
+	<table class="tbl1"><colgroup>
+		<col>
+		<col class="tier">
+		<col class="id">
+		<col class="pw">
+		<col class="stat">
+		<col class="top">
+		<col class="ept">
+	</colgroup><thead>
+		<tr>
+			<th></th>
+			<th class="tier"></th>
+			<th class="id">아이디</th>
+			<th class="pw">패스워드 <button><i class="svg-reset"></i> 초기화</button></th>
+			<th class="stat">현황 (요청 / 잔여 / 진행) <button @click="order"><i class="svg-chk"></i> 할당</button></th>
+			<th class="top">그룹</th>
+			<th class="ept"></th>
+		</tr>
+	</thead><tbody>
+		<tr v-for="a in blankList()">
+			<td></td>
+			<td><i :class="'tier-'+a.tier"></i></td>
+			<td>{{a.id}}</td>
+			<td><input type="text" :disabled="!a.id"></td>
+			<td><div class="state" v-for="b in a.ticket">
+				<i :class="`${b.name}`"></i><div><em :class="`order${b.order}`">{{b.order}}</em></div><span>/</span><div>{{b.idle}}</div><span>/</span><div>{{b.run}}</div>
+				<input type="number" v-model="a.order[b.name]" :disabled="notme(a.id)">
+			</div></td>
+			<td>
+				<div class="top">
+					<span v-for="b in a.top"><i :class="`tier-${b.tier}`"></i><br>{{b.id}}</span>
+				</div>
+			</td>
+			<td></td>
+		</tr>
+	</tbody></table>
+	<form v-on:submit="pagenav">
+		<input type="number" min="1" :max="total" v-model="page">
+		<button></button>
+	</form>
+	<dialog class="dlg1" open v-if="message[0]=='WAIT'">
+		<div>
+			<p>적용중 ..</p>
+		</div>
+		<form method="dialog" v-on:submit.prevent="reload">
+			<button>확인</button>
+		</form>
+	</dialog>
+	<dialog class="dlg1" open v-if="message[0]=='ORDER'">
+		<div>
+			<p v-for="a in message.slice(1)">
+				<span v-if="a.cnt>0">{{a.id}} 계정으로 <i :class="a.name"></i> {{a.cnt}}개 할당</span>
+				<span v-if="a.cnt<0">{{a.id}} 계정에서 <i :class="a.name"></i> {{-a.cnt}}개 회수</span>
+				<span>
+					<em class="success" v-if="a.yn==1">성공</em>
+					<span><em class="error" v-if="a.yn==0">실패</em></span>
+				</span>
+			</p>
+		</div>
+		<form method="dialog" v-on:submit.prevent="reload">
+			<button>확인</button>
+		</form>
+	</dialog>
+</div>
+<script type="module">
+import {local,signal,ref} from '/env.mjs'
+
+const app=local.app
+const total=ref(1)
+const page=ref(1)
+const list=ref([])
+const listsize=ref(20)
+const message=ref([])
+
+signal.get("accounts")({
+	setup(){
+		return {total,page,list,listsize,message}
+	},
+	methods:{
+		async reload(){
+			var lst=[],rows=await app.xpost("/accounts",{page:1,size:20})
+
+			if(rows)
+			for(var [line,tick] of rows){
+				var data={id:null,tier:null,top:[],ticket:[],order:{}}
+				var proc=(id,tier)=>{
+					data.id=id
+					data.tier=tier
+					proc=(id,tier)=>{
+						data.top.push({id,tier})
+					}
+				}
+
+				for(var tmp of line.split("\n")){
+					proc(...tmp.split("\t"))
+				}
+				for(var tmp of tick.split("\n")){
+					var [name,order,idle,run]=tmp.split("\t")
+					data.ticket.push({name,order,idle,run})
+					data.order[name]=0
+				}
+
+				lst.push(data)
+			}
+
+			list.value=lst
+			message.value=[]
+		},
+		async search(e){
+			e.preventDefault()
+
+			this.reload()
+		},
+		notme(id){
+			return app.userId==id
+		},
+		async order(){
+			var data=[]
+
+			for(var {id,order} of list.value){
+				for(var name in order){
+					var cnt=order[name]
+					if(cnt){
+						data.push([id,name,cnt])
+					}
+				}
+			}
+
+			if(data.length==0){
+				return
+			}
+
+			message.value=["WAIT"]
+
+			var {code,result}=await app.xpost("/tickets/move",{order:data})
+			if(code==200){
+				var msg=["ORDER"]
+				for(var arg of result){
+					msg.push({id:arg[0],name:arg[1],cnt:arg[2],yn:arg[3]})
+				}
+				message.value=msg
+			}
+		},
+		*blankList(){
+			var size=listsize.value
+			for(var row of list.value){
+				yield row
+				size--
+			}
+			for(;size>0;size--){
+				yield {}
+			}
+		}
+	},
+	mounted(){
+		this.reload()
+	}
+})
+</script>
