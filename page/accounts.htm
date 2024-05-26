@@ -95,7 +95,7 @@ signal.get("accounts")({
 	},
 	methods:{
 		async reload(){
-			var lst=[],rows=await app.xpost("/accounts",{page:1,size:20})
+			var lst=[],{page:b,rows}=await app.xpost("/accounts",{page:1,size:20})
 
 			if(rows)
 			for(var [line,tick] of rows){
@@ -120,6 +120,7 @@ signal.get("accounts")({
 				lst.push(data)
 			}
 
+			total.value=b
 			list.value=lst
 			message.value=[]
 		},
