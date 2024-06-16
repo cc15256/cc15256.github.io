@@ -254,7 +254,7 @@ signal.get("accounts")({
 			}
 		},
 		async showUpdate(id,cnt){
-			if(!cnt){
+			if(!+cnt){
 				return
 			}
 			var frm=await app.load(frmupdate.value,"order","order","/dlg/order.htm")
