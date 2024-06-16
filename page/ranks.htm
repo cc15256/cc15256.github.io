@@ -96,10 +96,10 @@
 				<span class="run" v-if="a.id&&a.state==100">작동중</span>
 				<span class="blank" v-if="!a.id"></span>
 			</td>
-			<td>{{a.note}}</td>
+			<td class="txt8">{{a.note}}</td>
 			<td><i :class="a.name"></i></td>
-			<td>{{a.url}}</td>
-			<td>{{a.txt}}</td>
+			<td class="txt8">{{a.url}}</td>
+			<td class="txt8">{{a.txt}}</td>
 			<td><button @click="rankOpen(a)" :disabled="!a.id">{{a.rankin}} / {{a.rankout}}</button></td>
 			<td><input type="number" min="0" v-model="a.rank"></td>
 			<td class="txt8">{{a.timein}}</td>
