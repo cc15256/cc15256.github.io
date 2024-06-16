@@ -33,11 +33,14 @@
 			<td>{{a.id}}</td>
 			<td><i :class="a.name"></i></td>
 			<td>
-				<span class="job-move" v-if="a.job=='MOVE'">
+				<span class="job-move" v-if="a.job=='TICKET-MOVE'">
 					<i :class="'tier-'+a.to[0]"></i> {{a.to[1]}}으로 {{Math.abs(a.count)}}개 {{a.count>0?'이동':'회수'}}
 				</span>
-				<span class="job-spend" v-if="a.job=='SPEND'">
+				<span class="job-spend" v-if="a.job=='TICKET-SPEND'">
 					{{a.count}}개 사용
+				</span>
+				<span class="job-update" v-if="a.job=='TICKET-UPDATE'">
+					{{a.count}}개 연장
 				</span>
 			</td>
 			<td>
@@ -90,7 +93,7 @@ signal.get("history")({
 				}
 
 				switch(job){
-				case "SPEND":
+				case "TICKET-SPEND":
 					data.ticket=to
 					break
 				default:
