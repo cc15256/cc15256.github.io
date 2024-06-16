@@ -49,7 +49,7 @@
 			<td>{{a.url}}</td>
 			<td>{{a.txt}}</td>
 			<td class="txt8">{{a.timein}}</td>
-			<td class="txt8">{{a.timeout}}</td>
+			<td class="txt8" :class="{alert:a.alert}">{{a.timeout}}</td>
 			<td></td>
         </tr>
     </tbody></table>
@@ -126,7 +126,7 @@ signal.get("order")({
 		},
 		parseDay(a){
 			var b=a.split("\t")
-			return {online:b[0],timein:b[1],timeout:b[2]}
+			return {online:b[0],timein:b[1],timeout:b[2],alert:+b[3]}
 		},
 		*pagelist(){
 			var last=total.value
