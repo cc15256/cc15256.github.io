@@ -89,7 +89,7 @@
 			<td><input type="text" v-model="a.txt" :placeholder="a.txt2" :disabled="!a.id"></td>
 			<td><button @click="rankOpen(a)" :disabled="!a.id">{{a.rankin}} / {{a.rankout}}</button></td>
 			<td class="txt8">{{a.timein}}</td>
-			<td class="txt8">{{a.timeout}}</td>
+			<td class="txt8" :class="{alert:a.alert}">{{a.timeout}}</td>
 			<td><i :class="'tier-'+a.tier"></i><br>{{a.id}}</td>
 			<td>
 				<div class="top">
@@ -301,7 +301,7 @@ signal.get("home")({
 		},
 		parseDay(a){
 			var b=a.split("\t")
-			return {online:b[0],timein:b[1],timeout:b[2],alert:b[3]}
+			return {online:b[0],timein:b[1],timeout:b[2],alert:+b[3]}
 		},
 		param(...a){
 			var b="",c="?"
