@@ -82,6 +82,7 @@ i.tier-usr{padding:.1em .5em;border-radius:.5em;color:#fff;background:#3a5;font-
 .idle{background:#36c;background:linear-gradient(145deg,#36c 33%,#6ad 100%)}
 .stop{background:#c66;background:linear-gradient(145deg,#c66 33%,#f77 100%)}
 .blank{background:#aaa;background:linear-gradient(145deg,#aaa 33%,#ccc 100%)}
+.alert{color:#c66}
 
 .svg-cls{content:url('https://api.iconify.design/material-symbols/close.svg?color=%23555')}
 .svg-chk{content:url('https://api.iconify.design/noto-v1/check-mark.svg?color=%23555')}
