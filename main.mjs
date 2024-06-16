@@ -97,7 +97,7 @@ new class{
 	}
 	async xget(url){
 		var res=await fetch(siteurl+url,{
-			credentials: "include"
+			credentials:"include"
 		})
 		var text=await res.text()
 		try{
@@ -107,7 +107,7 @@ new class{
 	}
 	async xpost(url,obj){
 		var res=await fetch(siteurl+url,{
-			credentials: "include",
+			credentials:"include",
 			method:"POST",
 			body:JSON.stringify({
 				site:this.site,
