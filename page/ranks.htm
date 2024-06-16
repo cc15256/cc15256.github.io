@@ -103,7 +103,7 @@
 			<td><button @click="rankOpen(a)" :disabled="!a.id">{{a.rankin}} / {{a.rankout}}</button></td>
 			<td><input type="number" min="0" v-model="a.rank"></td>
 			<td class="txt8">{{a.timein}}</td>
-			<td class="txt8">{{a.timeout}}</td>
+			<td class="txt8" :class="{alert:a.alert}">{{a.timeout}}</td>
 			<td><i :class="'tier-'+a.tier"></i><br>{{a.id}}</td>
 			<td>
 				<div class="top">
@@ -339,7 +339,7 @@ signal.get("ranks")({
 		},
 		parseDay(a){
 			var b=a.split("\t")
-			return {online:b[0],timein:b[1],timeout:b[2]}
+			return {online:b[0],timein:b[1],timeout:b[2],alert:+b[3]}
 		},
 		param(...a){
 			var b="",c="?"
