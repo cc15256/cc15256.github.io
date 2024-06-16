@@ -7,6 +7,8 @@
 .home .status span{padding:0 .3em}
 .home table input[type=text]{font-size:.8em}
 .home table .play button{flex:auto}
+.home table th button{min-height:100%}
+.home table th button span{padding:0 .4em}
 .home table td button{min-height:100%;width:100%}
 .home table td .run,
 .home table td .idle,
@@ -15,13 +17,6 @@
 .home .order-dlg span:last-child{text-align:left}
 .home .rside{position:fixed;top:0;right:0;bottom:0;width:20em;background:#fff}
 .home .rside:empty{display:none}
-.home .status .name{background:#fff;background:linear-gradient(145deg,#eee 33%,#fff 100%);color:#666}
-.home .run{background:#3a6;background:linear-gradient(145deg,#3a6 33%,#6da 100%)}
-.home .idle{background:#36c;background:linear-gradient(145deg,#36c 33%,#6ad 100%)}
-.home .stop{background:#c66;background:linear-gradient(145deg,#c66 33%,#f77 100%)}
-.home .blank{background:#aaa;background:linear-gradient(145deg,#aaa 33%,#ccc 100%)}
-.home .svg-play{content:url('https://api.iconify.design/fluent/play-24-regular.svg?color=%23555')}
-.home .svg-stop{content:url('https://api.iconify.design/fluent/stop-24-regular.svg?color=%23555')}
 </style>
 <div class="home">
 	<div class="status">
@@ -34,11 +29,11 @@
 			</li>
 		</ol>
 	</div>
-	<form v-on:submit="search">
+	<form v-on:submit.prevent="search">
 		<input>
 		<button type="submit">검색</button>
 		<label><input name="state" type="radio" value="" v-model="state">전체</label>
-		<label><input name="state" type="radio" value="-run-" v-model="state">작동중</label>
+		<label><input name="state" type="radio" value="-run-" v-model="state">사용</label>
 		<label><input name="state" type="radio" value="-idle-" v-model="state">미사용</label>
 		<label><input name="state" type="radio" value="-fin-" v-model="state">만료</label>
 	</form>
@@ -66,7 +61,7 @@
 					<button @click="stop"><i class="svg-stop"></i></button>
 				</div>
 			</th>
-			<th class="memo">메모</th>
+			<th class="memo"><button @click="ticketUpdate"><span>연장신청</span></button>&nbsp;메모</th>
 			<th class="name">현황</th>
 			<th class="url">URL</th>
 			<th class="kwd">키워드</th>
@@ -104,10 +99,14 @@
 			<td></td>
 		</tr>
 	</tbody></table>
-	<form v-on:submit="pagenav">
-		<input type="number" min="1" :max="total" v-model="page">
-		<button></button>
-	</form>
+	<div class="pagelst1">
+		<button @click="pagemv(-10)" :disabled="page<=1"><i class="svg-l"></i></button>
+		<template v-for="{text,active} in pagelist()">
+			<input type="number" min="1" :max="total" v-if="text==page" v-model="page" @keydown.enter="reload()">
+			<button name="idx" v-else :value="text" :disabled="!active" @click="pagenav(text)">{{text}}</button>
+		</template>
+		<button @click="pagemv(10)" :disabled="page>=total"><i class="svg-r"></i></button>
+	</div>
 	<dialog class="dlg1 order-dlg" open v-if="orderDialog[0]=='ORDER'">
 		<div>
 			<p><i :class="orderDialog[1]"></i> 요청 수량을 입력해주세요.</p>
@@ -128,10 +127,23 @@
 			</p>
 		</div>
 		<form method="dialog">
-			<button @click="orderDialog=''">확인</button>
+			<button @click="orderDialog[0]=''">확인</button>
 		</form>
 	</dialog>
-	<div class="rside" ref="rank"></div>
+	<dialog class="dlg1 update-dlg" open v-if="updateDialog[0]=='WAIT'">
+		<div>
+			<p>
+				<i :class="updateDialog[1]"></i>
+				&nbsp;{{updateDialog[2]}}개&nbsp;
+				<span v-if="updateDialog[3]==0">요청중 ..</span>
+				<span v-if="updateDialog[3]==1">연장신청 되었습니다.</span>
+			</p>
+		</div>
+		<form method="dialog">
+			<button @click="updateDialog[0]=''">확인</button>
+		</form>
+	</dialog>
+	<div class="rside" ref="rside"></div>
 </div>
 <script type="module">
 import {local,signal,ref} from '/env.mjs'
@@ -139,24 +151,26 @@ import {local,signal,ref} from '/env.mjs'
 const app=local.app
 const total=ref(1)
 const page=ref(1)
+const pageidx=ref(1)
+const list=ref([])
+const listsize=ref(20)
 const state=ref("")
 const all=ref(false)
 const status=ref([
 	{name:"cs0-30-120",run:0,idle:0},
 	{name:"cs0-5-40",run:0,idle:0}
 ])
-const list=ref([])
-const listsize=ref(20)
 const orderDialog=ref([])
-const rank=ref(null)
+const updateDialog=ref([])
+const rside=ref(null)
 
 signal.get("home")({
 	setup(){
-		return {total,page,state,all,status,list,listsize,orderDialog,rank}
+		return {total,page,state,all,status,list,listsize,orderDialog,updateDialog,rside}
 	},
 	methods:{
 		async reload(){
-			var lst=[],{state:a,page:b,rows}=await app.xpost("/tickets",{page:page.value,size:20,state:state.value})
+			var lst=[],{state:a,page:b,rows}=await app.xpost("/tickets",{page:page.value,size:listsize.value,state:state.value})
 
 			for(var st of status.value){
 				var tmp=a[st.name]
@@ -207,20 +221,25 @@ signal.get("home")({
 			orderDialog.value=["ORDER",name,0,0]
 		},
 		async search(e){
-			e.preventDefault()
-
 			this.reload()
 		},
-		async pagenav(e){
-			e.preventDefault()
-
+		async pagenav(i){
+			page.value=i
 			this.reload()
 		},
 		async rankOpen(row){
-			var frm=await app.load(rank.value,"rank","rank","/dlg/rank.htm")
+			var frm=await app.load(rside.value,"rank","rank","/dlg/rank.htm")
 			frm.id=row.num
 			frm.today()
 			frm.reload()
+		},
+		async pagemv(i){
+			var idx=pageidx.value+i
+			if(idx<0){
+				pageidx.value=1
+			}else if(idx<total.value){
+				pageidx.value=idx
+			}
 		},
 		async play(){
 			var data=[]
@@ -246,15 +265,28 @@ signal.get("home")({
 			await app.xpost("/tickets/stop",{data})
 			await this.reload()
 		},
+		async ticketUpdate(){
+			var data=[]
+
+			for(var {chk,num} of list.value){
+				if(chk){
+					data.push(num)
+				}
+			}
+
+			await app.xpost("/tickets/date/request",{data})
+		},
 		chkall(){
 			var val=!all.value
 			for(var a of list.value){
 				a.chk=val
 			}
 		},
-		pagination(){
-			var i=page.value,end=total.value
-
+		*pagelist(){
+			var last=total.value
+			for(var i=pageidx.value,size=i+10;i<size;i++){
+				yield {text:i,active:(i<=last)}
+			}
 		},
 		job(a){
 			var b=a.split("\t")

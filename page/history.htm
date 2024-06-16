@@ -48,10 +48,14 @@
 			<td></td>
 		</tr>
 	</tbody></table>
-	<form v-on:submit="pagenav">
-		<input type="number" min="1" :max="total" v-model="page">
-		<button></button>
-	</form>
+	<div class="pagelst1">
+		<button @click="pagemv(-10)" :disabled="page<=1"><i class="svg-l"></i></button>
+		<template v-for="{text,active} in pagelist()">
+			<input type="number" min="1" :max="total" v-if="text==page" v-model="page" @keydown.enter="reload()">
+			<button name="idx" v-else :value="text" :disabled="!active" @click="pagenav(text)">{{text}}</button>
+		</template>
+		<button @click="pagemv(10)" :disabled="page>=total"><i class="svg-r"></i></button>
+	</div>
 </div>
 <script type="module">
 import {local,signal,ref} from '/env.mjs'
@@ -59,6 +63,7 @@ import {local,signal,ref} from '/env.mjs'
 const app=local.app
 const total=ref(1)
 const page=ref(1)
+const pageidx=ref(1)
 const list=ref([])
 const listsize=ref(20)
 
@@ -68,7 +73,7 @@ signal.get("history")({
 	},
 	methods:{
 		async reload(){
-			var lst=[],{page:b,rows}=await app.xpost("/tickets/history",{page:1,size:20})
+			var lst=[],{page:b,rows}=await app.xpost("/tickets/history",{page:page.value,size:listsize.value})
 
 			for(var [line,to,time,job,name,count] of rows){
 				var data={id:null,tier:null,time,job,name,to:null,ticket:null,count,top:[]}
@@ -95,13 +100,30 @@ signal.get("history")({
 				lst.push(data)
 			}
 
+			total.value=b
 			page.value=b
 			list.value=lst
 		},
 		async search(e){
-			e.preventDefault()
-
 			this.reload()
+		},
+		async pagenav(i){
+			page.value=i
+			this.reload()
+		},
+		async pagemv(i){
+			var idx=pageidx.value+i
+			if(idx<0){
+				pageidx.value=1
+			}else if(idx<total.value){
+				pageidx.value=idx
+			}
+		},
+		*pagelist(){
+			var last=total.value
+			for(var i=pageidx.value,size=i+10;i<size;i++){
+				yield {text:i,active:(i<=last)}
+			}
 		},
 		*blankList(){
 			var size=listsize.value

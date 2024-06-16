@@ -46,8 +46,15 @@
 				<button @click="msgVis=false"><i class="svg-cls"></i></button>
 			</li>
 			<li v-for="a in msg">
-				<template v-if="a.type=='ORDER'">
-					<p>&nbsp;{{a.id}}계정에서 <i :class="a.name"></i> {{a.cnt}}개 요청</p>
+				<template v-if="a.type=='TICKET-ORDER'">
+					<p>&nbsp;{{a.id}}계정에서 <i :class="a.name"></i> {{a.cnt}}개 신규 요청</p>
+					<p>
+						<span>{{a.time}}</span>&nbsp;
+						<label>읽음 <input type="checkbox" :disabled="a.yn==0" v-model="a.ok"></label>
+					</p>
+				</template>
+				<template v-if="a.type=='TICKET-UPDATE'">
+					<p>&nbsp;{{a.id}}계정에서 <i :class="a.name"></i> {{a.cnt}}개 기간연장 요청</p>
 					<p>
 						<span>{{a.time}}</span>&nbsp;
 						<label>읽음 <input type="checkbox" :disabled="a.yn==0" v-model="a.ok"></label>
